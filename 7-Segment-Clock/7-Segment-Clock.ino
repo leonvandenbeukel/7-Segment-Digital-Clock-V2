@@ -63,6 +63,7 @@ long numbers[] = {
  *  - also add GET and implement for rgb values r_val etc 
  *  - add buzzer at end of countdown
  *  done - temp.
+ *  - Scoreboard
  */
 
 void setup() {
@@ -201,22 +202,6 @@ void setup() {
   Serial.printf("\n"); 
 }
 
-void printDateTime(const RtcDateTime& dt)
-{
-    char datestring[20];
-
-    snprintf_P(datestring, 
-            countof(datestring),
-            PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
-            dt.Month(),
-            dt.Day(),
-            dt.Year(),
-            dt.Hour(),
-            dt.Minute(),
-            dt.Second() );
-    Serial.println(datestring);
-}
-
 void loop(){
 
   server.handleClient(); 
@@ -238,33 +223,49 @@ void loop(){
   }   
 }
 
+void displayNumber(byte number, byte segment, CRGB color) {
+  /*
+   * 
+      __ __ __        __ __ __          __ __ __        12 13 14  
+    __        __    __        __      __        __    11        15
+    __        __    __        __      __        __    10        16
+    __        __    __        __  42  __        __    _9        17
+      __ __ __        __ __ __          __ __ __        20 19 18  
+    __        65    __        44  43  __        21    _8        _0
+    __        __    __        __      __        __    _7        _1
+    __        __    __        __      __        __    _6        _2
+      __ __ __       __ __ __           __ __ __       _5 _4 _3   
+
+   */
+ 
+  // segment from left to right: 3, 2, 1, 0
+  byte startindex = 0;
+  switch (segment) {
+    case 0:
+      startindex = 0;
+      break;
+    case 1:
+      startindex = 21;
+      break;
+    case 2:
+      startindex = 44;
+      break;
+    case 3:
+      startindex = 65;
+      break;    
+  }
+
+  for (byte i=0; i<21; i++){
+    yield();
+    LEDs[i + startindex] = ((numbers[number] & 1 << i) == 1 << i) ? color : CRGB::Black;
+  } 
+}
+
 void allBlank() {
   for (int i=0; i<NUM_LEDS; i++) {
     LEDs[i] = CRGB::Black;
   }
   FastLED.show();
-}
-
-void updateTemperature() {
-  RtcTemperature temp = Rtc.GetTemperature();
-  float ftemp = temp.AsFloatDegC();
-  float ctemp = ftemp + temperatureCorrection;
-  Serial.print("Sensor temp: ");
-  Serial.print(ftemp);
-  Serial.print(" Corrected: ");
-  Serial.println(ctemp);
-
-  if (temperatureSymbol == 13)
-    ctemp = (ctemp * 1.8000) + 32;
-
-  byte t1 = int(ctemp) / 10;
-  byte t2 = int(ctemp) % 10;
-  CRGB color = CRGB(r_val, g_val, b_val);
-  displayNumber(t1,3,color);
-  displayNumber(t2,2,color);
-  displayNumber(11,1,color);
-  displayNumber(temperatureSymbol,0,color);
-  hideDots();
 }
 
 void updateClock() {  
@@ -297,6 +298,10 @@ void updateClock() {
 }
 
 void updateCountdown() {
+
+  if (countdownMilliSeconds == 0 && endCountDownMillis == 0) 
+    return;
+    
   unsigned long restMillis = endCountDownMillis - millis();
   unsigned long hours   = ((restMillis / 1000) / 60) / 60;
   unsigned long minutes = (restMillis / 1000) / 60;
@@ -344,13 +349,12 @@ void updateCountdown() {
 
   displayDots(color);  
 
-
   if (hours <= 0 && remMinutes <= 0 && remSeconds <= 0) {
     Serial.println("Countdown timer ended.");
-    endCountdown();
+    //endCountdown();
     countdownMilliSeconds = 0;
     endCountDownMillis = 0;
-    clockMode = 0;
+    //clockMode = 0;
     return;
   }  
 }
@@ -384,58 +388,40 @@ void hideDots() {
   LEDs[43] = CRGB::Black;
 }
 
-void displayNumber(byte number, byte segment, CRGB color) {
-  /*
-   * 
-      __ __ __        __ __ __          __ __ __        12 13 14  
-    __        __    __        __      __        __    11        15
-    __        __    __        __      __        __    10        16
-    __        __    __        __  42  __        __    _9        17
-      __ __ __        __ __ __          __ __ __        20 19 18  
-    __        65    __        44  43  __        21    _8        _0
-    __        __    __        __      __        __    _7        _1
-    __        __    __        __      __        __    _6        _2
-      __ __ __       __ __ __           __ __ __       _5 _4 _3   
+void updateTemperature() {
+  RtcTemperature temp = Rtc.GetTemperature();
+  float ftemp = temp.AsFloatDegC();
+  float ctemp = ftemp + temperatureCorrection;
+  Serial.print("Sensor temp: ");
+  Serial.print(ftemp);
+  Serial.print(" Corrected: ");
+  Serial.println(ctemp);
 
-   */
- 
-  // segment from left to right: 3, 2, 1, 0
-  byte startindex = 0;
-  switch (segment) {
-    case 0:
-      startindex = 0;
-      break;
-    case 1:
-      startindex = 21;
-      break;
-    case 2:
-      startindex = 44;
-      break;
-    case 3:
-      startindex = 65;
-      break;    
-  }
+  if (temperatureSymbol == 13)
+    ctemp = (ctemp * 1.8000) + 32;
 
-  for (byte i=0; i<21; i++){
-    yield();
-    LEDs[i + startindex] = ((numbers[number] & 1 << i) == 1 << i) ? color : CRGB::Black;
-  } 
+  byte t1 = int(ctemp) / 10;
+  byte t2 = int(ctemp) % 10;
+  CRGB color = CRGB(r_val, g_val, b_val);
+  displayNumber(t1,3,color);
+  displayNumber(t2,2,color);
+  displayNumber(11,1,color);
+  displayNumber(temperatureSymbol,0,color);
+  hideDots();
 }
 
-//boolean summerTime() {
-//  struct tm *timeinfo;
-//  time(&now);
-//  timeinfo = localtime(&now);
-//
-//  int y = timeinfo->tm_year;
-//  int m = timeinfo->tm_mon;
-//  int d = timeinfo->tm_mday;
-//  int h = timeinfo->tm_hour;  
-//
-//  if (m < 3 || m > 10) return false;  // No summer time in Jan, Feb, Nov, Dec
-//  if (m > 3 && m < 10) return true;   // Summer time in Apr, May, Jun, Jul, Aug, Sep
-//  if (m == 3 && (h + 24 * d) >= (3 +  24 * (31 - (5 * y / 4 + 4) % 7)) || m == 10 && (h + 24 * d) < (3 +  24 * (31 - (5 * y / 4 + 1) % 7)))
-//  return true;
-//    else
-//  return false;
-//}
+void printDateTime(const RtcDateTime& dt)
+{
+    char datestring[20];
+
+    snprintf_P(datestring, 
+            countof(datestring),
+            PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
+            dt.Month(),
+            dt.Day(),
+            dt.Year(),
+            dt.Hour(),
+            dt.Minute(),
+            dt.Second() );
+    Serial.println(datestring);
+}
