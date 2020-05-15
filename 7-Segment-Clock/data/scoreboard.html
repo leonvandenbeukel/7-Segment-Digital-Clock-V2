@@ -43,10 +43,67 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="form-group">           
-                        <div id="currentDateTime"></div>
-                    </div>                   
-                    <button type="button" class="btn btn-primary" onclick="setDateTime()">Update Date/Time</button>
+                    <form>
+                        <label>Scoreboard</label>
+
+                        <div class="form-row">
+                            <div class="col input-group mb-3">
+                                <button type="button" class="btn btn-info btn-block" onclick="upleft();">Up</button>
+                            </div>
+
+                            <div class="col input-group mb-3">
+                                <button type="button" class="btn btn-info btn-block" onclick="upright();">Up</button>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col input-group mb-3">
+                                <input type="text" class="form-control" value="20" id="scoreboardLeft">
+                               
+                            </div>
+                            <div class="col input-group mb-3">
+                                <input type="text" class="form-control" value="20" id="scoreboardRight">
+                                
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col input-group mb-3">
+                                <button type="button" class="btn btn-info btn-block" onclick="downleft();">Down</button>
+                            </div>
+
+                            <div class="col input-group mb-3">
+                                <button type="button" class="btn btn-info btn-block" onclick="downright();">Down</button>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col input-group mb-3">
+                                <input type="text" id="scoreboardColorLeft" class="form-control demo" value="#00ff00">
+                            </div>
+
+                            <div class="col input-group mb-3">
+                                <input type="text" id="scoreboardColorRight" class="form-control demo" value="#ff0000">
+                            </div>
+                        </div>
+
+
+                        <div>
+                            
+                            <div>
+                                <button type="button" class="btn btn-primary" onclick="showScoreboard()">Show Scoreboard</button>
+                            </div>
+
+                            <div style="margin-top: 12px;">
+                                <button type="button" class="btn btn-primary" onclick="showClock()">Show
+                                    Clock</button>
+                            </div>
+
+                            <div id="validNrs" style="display: none;">
+                                <br />
+                                <div class="alert alert-danger" role="alert">
+                                    Please enter valid values!
+                                </div>
+                            </div>
+                        </div>
+                    </form>
 
                 </div>
             </div>        

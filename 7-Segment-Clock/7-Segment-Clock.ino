@@ -33,10 +33,14 @@ bool dotsOn = true;
 byte brightness = 255;
 float temperatureCorrection = -3.0;
 byte temperatureSymbol = 12;      // 12=Celcius, 13=Fahrenheit check 'numbers'
-byte clockMode = 0;               // Clock modes: 0=Clock, 1=Countdown, 2=Temperature
+byte clockMode = 0;               // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard
 unsigned long countdownMilliSeconds;
 unsigned long endCountDownMillis;
 CRGB countdownColor = CRGB::Green;
+byte scoreboardLeft = 0;
+byte scoreboardRight = 0;
+CRGB scoreboardColorLeft = CRGB::Green;
+CRGB scoreboardColorRight = CRGB::Red;
 
 long numbers[] = {
   0b000111111111111111111,  // [0] 0
@@ -56,14 +60,8 @@ long numbers[] = {
 };
 
 /* TODO:
- *  - add a reset button where wifiManager can be resetted
  *  done - test if it also works with a mobile phone hotspot and another phone that connects (or same?)
  *  done - upload files http://arduino.esp8266.com/Arduino/versions/2.3.0/doc/filesystem.html#uploading-files-to-file-system
- *  done - fix summerTime
- *  - also add GET and implement for rgb values r_val etc 
- *  - add buzzer at end of countdown
- *  done - temp.
- *  - Scoreboard
  */
 
 void setup() {
@@ -182,6 +180,15 @@ void setup() {
     server.send(200, "text/json", "{ok}");
   });  
 
+  server.on("/scoreboard", HTTP_POST, []() {   
+    scoreboardLeft = server.arg("left").toInt();
+    scoreboardRight = server.arg("right").toInt();
+    scoreboardColorLeft = CRGB(server.arg("rl").toInt(),server.arg("gl").toInt(),server.arg("bl").toInt());
+    scoreboardColorRight = CRGB(server.arg("rr").toInt(),server.arg("gr").toInt(),server.arg("br").toInt());
+    clockMode = 3;     
+    server.send(200, "text/json", "{ok}");
+  });  
+
   server.on("/clock", HTTP_POST, []() {       
     clockMode = 0;     
     server.send(200, "text/json", "{ok}");
@@ -216,6 +223,8 @@ void loop(){
       updateCountdown();
     } else if (clockMode == 2) {
       updateTemperature();      
+    } else if (clockMode == 3) {
+      updateScoreboard();            
     }
 
     FastLED.setBrightness(brightness);
@@ -407,6 +416,19 @@ void updateTemperature() {
   displayNumber(t2,2,color);
   displayNumber(11,1,color);
   displayNumber(temperatureSymbol,0,color);
+  hideDots();
+}
+
+void updateScoreboard() {
+  byte sl1 = scoreboardLeft / 10;
+  byte sl2 = scoreboardLeft % 10;
+  byte sr1 = scoreboardRight / 10;
+  byte sr2 = scoreboardRight % 10;
+
+  displayNumber(sl1,3,scoreboardColorLeft);
+  displayNumber(sl2,2,scoreboardColorLeft);
+  displayNumber(sr1,1,scoreboardColorRight);
+  displayNumber(sr2,0,scoreboardColorRight);
   hideDots();
 }
 
