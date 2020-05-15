@@ -1,10 +1,10 @@
 #include <Wire.h>
-#include <RtcDS3231.h> // Include RTC library by Makuna: https://github.com/Makuna/Rtc
+#include <RtcDS3231.h>            // Include RTC library by Makuna: https://github.com/Makuna/Rtc
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h>         // https://github.com/tzapu/WiFiManager
-//#include <time.h>
 #include <ESP8266HTTPUpdateServer.h>
+#include <FastLED.h>
 #include "Credentials.h"        // Create this file in the same directory as the .ino file and add your credentials (#define SID YOURSSID and on the second line #define PW YOURPASSWORD)
 
 RtcDS3231<TwoWire> Rtc(Wire);
@@ -14,19 +14,29 @@ RtcDS3231<TwoWire> Rtc(Wire);
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdateServer;
 
-//float timeZone = 1.0;                               // Change this value to your local timezone (in my case +1 for Amsterdam)
-//const int DAY_LIGHT_OFFSET_SECONDS = 3600;          // Daylight saving
-//const char *TIME_SERVER = "pool.ntp.org";
-//const int EPOCH_1_1_2019 = 1546300800;
-//time_t now;
-
-// FastLED 
-#include <FastLED.h>
-
-#define NUM_LEDS 86 //  86     
-#define DATA_PIN D6 // Change this if you are using another type of ESP board than a WeMos D1 Mini
+#define NUM_LEDS 86             // Total of 86 LED's     
+#define DATA_PIN D6             // Change this if you are using another type of ESP board than a WeMos D1 Mini
 CRGB LEDs[NUM_LEDS];
 #define MILLI_AMPS 2400 
+
+const char* APssid = "CLOCK_AP";
+const char* APpassword = "1234567890";
+const char *ssid = SID;
+const char *password = PW;
+
+// Settings
+unsigned long prevTime = 0;
+byte r_val = 255;
+byte g_val = 0;
+byte b_val = 0;
+bool dotsOn = true;
+byte brightness = 255;
+float temperatureCorrection = -3.0;
+byte temperatureSymbol = 12;      // 12=Celcius, 13=Fahrenheit check 'numbers'
+byte clockMode = 0;               // Clock modes: 0=Clock, 1=Countdown, 2=Temperature
+unsigned long countdownMilliSeconds;
+unsigned long endCountDownMillis;
+CRGB countdownColor = CRGB::Green;
 
 long numbers[] = {
   0b000111111111111111111,  // [0] 0
@@ -44,27 +54,6 @@ long numbers[] = {
   0b000000111111111111000,  // [12] C(elsius)
   0b111000111111111000000,  // [13] F(ahrenheit)
 };
-
-unsigned long prevTime = 0;
-
-const char* APssid = "CLOCK_AP";
-const char* APpassword = "1234567890";
-const char *ssid = SID;
-const char *password = PW;
-
-// Settings
-byte r_val = 255;
-byte g_val = 0;
-byte b_val = 0;
-bool dotsOn = true;
-byte brightness = 255;
-float temperatureCorrection = -3.0;
-byte temperatureSymbol = 12;
-
-byte clockMode = 0; // 0=Clock, 1=Countdown, 2=Temperature
-unsigned long countdownMilliSeconds;
-unsigned long endCountDownMillis;
-CRGB countdownColor = CRGB::Green;
 
 /* TODO:
  *  - add a reset button where wifiManager can be resetted
@@ -109,7 +98,6 @@ void setup() {
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(LEDs, NUM_LEDS);  
   FastLED.setDither(false);
   FastLED.setCorrection(TypicalLEDStrip);
-  //FastLED.setBrightness(brightness);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, MILLI_AMPS);
   fill_solid(LEDs, NUM_LEDS, CRGB::Black);
   FastLED.show();
@@ -143,21 +131,7 @@ void setup() {
   Serial.println(WiFi.localIP());
   Serial.println(WiFi.softAPIP());
 
-//  configTime(timeZone, DAY_LIGHT_OFFSET_SECONDS, TIME_SERVER);
-//
-//  while (now < EPOCH_1_1_2019)
-//  {
-//    now = time(nullptr);
-//    delay(500);
-//    Serial.print("*");
-//  }
-  
   httpUpdateServer.setup(&server);
-
-//  server.on("/", HTTP_GET, []() {
-//    String s = "<html>test</html>"; //MAIN_page; 
-//    server.send(200, "text/html", s);
-//  });
 
   server.on("/color", HTTP_POST, []() {    
     r_val = server.arg("r").toInt();
@@ -195,11 +169,7 @@ void setup() {
     byte cd_b_val = server.arg("b").toInt();
     countdownColor = CRGB(cd_r_val, cd_g_val, cd_b_val); 
     endCountDownMillis = millis() + countdownMilliSeconds;
-    allBlank();
-
-    Serial.print("CountdownMilliSeconds: ");
-    Serial.println(countdownMilliSeconds);
-    
+    allBlank(); 
     clockMode = 1;     
     server.send(200, "text/json", "{ok}");
   });
@@ -229,16 +199,7 @@ void setup() {
     Serial.printf("FS File: %s, size: %s\n", fileName.c_str(), String(fileSize).c_str());
   }
   Serial.printf("\n"); 
-
-  // Simulate/test countdown mode
-  //countdownMilliSeconds = 3660000;
-  //endCountDownMillis = millis() + countdownMilliSeconds;
-  //clockMode = 1;
 }
-
-
-CRGB colors[] = {CRGB::Red,CRGB::Chocolate,CRGB::Blue,CRGB::Green,CRGB::Orange,CRGB::White,CRGB::Yellow,CRGB::DeepSkyBlue,CRGB::FireBrick};
-byte colorIndex = 0;
 
 void printDateTime(const RtcDateTime& dt)
 {
