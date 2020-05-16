@@ -23,3 +23,21 @@ Most files can be printed with 0.3 setting and low infill.
 
 Connect D6 from the ESP8266 through a 10 ohm resistor to the data pin of the LED strip. Connect the RTC to gnd, vcc and connect SDA and SCLK to the ESP8266 (check the pin layout of the ESP board you are using). Don't power the LED strip from the ESP board but use a Micro USB breakout board en connect the 5V to the LED strip.
 
+## Arduino code
+
+Upload the .ino file to your ESP board. You also need to upload the html and javascript files with the ESP8266FS tool. Check this link for more info:
+
+http://arduino.esp8266.com/Arduino/versions/2.3.0/doc/filesystem.html#uploading-files-to-file-system
+
+Before uploading the files to your ESP board you have to gzip them with the command:
+
+`gzip -r ./data/`
+
+Afterwards if you want to change something to the html files, just unzip with:
+
+`gunzip -r ./data/`
+
+
+
+
+
