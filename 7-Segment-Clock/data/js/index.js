@@ -148,3 +148,8 @@ function downright() {
         showScoreboard();
     }
 }
+
+function updateHourFormat() {
+    var hourformat = $('#hourFormat').val();
+    $.post("/hourformat", { hourformat: hourformat });
+}

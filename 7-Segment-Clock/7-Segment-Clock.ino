@@ -32,15 +32,18 @@ byte b_val = 0;
 bool dotsOn = true;
 byte brightness = 255;
 float temperatureCorrection = -3.0;
-byte temperatureSymbol = 12;      // 12=Celcius, 13=Fahrenheit check 'numbers'
-byte clockMode = 0;               // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard
+byte temperatureSymbol = 12;          // 12=Celcius, 13=Fahrenheit check 'numbers'
+byte clockMode = 0;                   // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard
 unsigned long countdownMilliSeconds;
 unsigned long endCountDownMillis;
+byte hourFormat = 24;                 // Change this to 12 if you want default 12 hours format instead of 24               
+
 CRGB countdownColor = CRGB::Green;
 byte scoreboardLeft = 0;
 byte scoreboardRight = 0;
 CRGB scoreboardColorLeft = CRGB::Green;
 CRGB scoreboardColorRight = CRGB::Red;
+CRGB alternateColor = CRGB::Black; //CRGB(0,20,125);
 
 long numbers[] = {
   0b000111111111111111111,  // [0] 0
@@ -121,7 +124,7 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
-   }
+  }
   
   Serial.println("");
   Serial.println("WiFi connected");
@@ -188,6 +191,12 @@ void setup() {
     clockMode = 3;     
     server.send(200, "text/json", "{ok}");
   });  
+
+  server.on("/hourformat", HTTP_POST, []() {   
+    hourFormat = server.arg("hourformat").toInt();
+    clockMode = 0;     
+    server.send(200, "text/json", "{ok}");
+  }); 
 
   server.on("/clock", HTTP_POST, []() {       
     clockMode = 0;     
@@ -266,7 +275,7 @@ void displayNumber(byte number, byte segment, CRGB color) {
 
   for (byte i=0; i<21; i++){
     yield();
-    LEDs[i + startindex] = ((numbers[number] & 1 << i) == 1 << i) ? color : CRGB::Black;
+    LEDs[i + startindex] = ((numbers[number] & 1 << i) == 1 << i) ? color : alternateColor;
   } 
 }
 
@@ -279,11 +288,14 @@ void allBlank() {
 
 void updateClock() {  
   RtcDateTime now = Rtc.GetDateTime();
-  //printDateTime(now);    
+  printDateTime(now);    
 
   int hour = now.Hour();
   int mins = now.Minute();
   int secs = now.Second();
+
+  if (hourFormat == 12 && hour > 12)
+    hour = hour - 12;
   
   byte h1 = hour / 10;
   byte h2 = hour % 10;

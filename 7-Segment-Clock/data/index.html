@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -43,25 +44,42 @@
             <div class="card">
                 <div class="card-body">
 
-                    <div class="form-group">           
-                        <input type="text" id="inline" class="form-control demo" data-inline="true" value="#ff0000">                        
-                    </div>                   
+                    <div class="form-group">
+                        <input type="text" id="inline" class="form-control demo" data-inline="true" value="#ff0000">
+                    </div>
                     <button type="button" class="btn btn-primary" onclick="setColor()">Update Color</button>
 
                 </div>
-            </div>      
-            <br/>
+            </div>
+            <br />
             <div class="card">
                 <div class="card-body">
 
-                    <div class="form-group">           
+                    <div class="form-group">
                         <label for="rangeBrightness">Brightness</label>
-                        <input type="range" class="form-control-range" id="rangeBrightness" min="10" max="255" value="255">                       
-                    </div>                   
+                        <input type="range" class="form-control-range" id="rangeBrightness" min="10" max="255"
+                            value="255">
+                    </div>
                     <button type="button" class="btn btn-primary" onclick="setBrightness()">Update Brightness</button>
 
                 </div>
-            </div>        
+            </div>
+            <br />
+            <div class="card">
+                <div class="card-body">
+
+                    <div class="form-group">
+                        <label for="hourFormat">Hour Format</label>
+                        <select class="form-control" id="hourFormat">
+                            <option value="24">24</option>
+                            <option value="12">12</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="updateHourFormat()">Update Hour
+                        Format</button>
+
+                </div>
+            </div>
         </div>
     </div>
 
@@ -70,6 +88,7 @@
     <script type="text/javascript" src="js/bootstrap.min.js"></script>
     <script type="text/javascript" src="js/jquery.minicolors.min.js"></script>
     <script type="text/javascript" src="js/index.js"></script>
-  
+
 </body>
+
 </html>
