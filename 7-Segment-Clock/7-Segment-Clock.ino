@@ -1,11 +1,23 @@
 #include <Wire.h>
-#include <RtcDS3231.h>            // Include RTC library by Makuna: https://github.com/Makuna/Rtc
+#include <RtcDS3231.h>                // Include RTC library by Makuna: https://github.com/Makuna/Rtc
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-#include <WiFiManager.h>         // https://github.com/tzapu/WiFiManager
+#include <WiFiManager.h>              // https://github.com/tzapu/WiFiManager
 #include <ESP8266HTTPUpdateServer.h>
 #include <FastLED.h>
-#include "Credentials.h"        // Create this file in the same directory as the .ino file and add your credentials (#define SID YOURSSID and on the second line #define PW YOURPASSWORD)
+
+#define WIFIMODE 2                    // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with UN/PW, 2 = Both
+
+#if defined(WIFIMODE) && (WIFIMODE == 0 || WIFIMODE == 2)
+  const char* APssid = "CLOCK_AP";        
+  const char* APpassword = "1234567890";  
+#endif
+  
+#if defined(WIFIMODE) && (WIFIMODE == 1 || WIFIMODE == 2)
+  #include "Credentials.h"            // Create this file in the same directory as the .ino file and add your credentials (#define SID YOURSSID and on the second line #define PW YOURPASSWORD)
+  const char *ssid = SID;
+  const char *password = PW;
+#endif
 
 RtcDS3231<TwoWire> Rtc(Wire);
 #include <FS.h>
@@ -14,15 +26,10 @@ RtcDS3231<TwoWire> Rtc(Wire);
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdateServer;
 
-#define NUM_LEDS 86             // Total of 86 LED's     
-#define DATA_PIN D6             // Change this if you are using another type of ESP board than a WeMos D1 Mini
+#define NUM_LEDS 86                   // Total of 86 LED's     
+#define DATA_PIN D6                   // Change this if you are using another type of ESP board than a WeMos D1 Mini
 CRGB LEDs[NUM_LEDS];
 #define MILLI_AMPS 2400 
-
-const char* APssid = "CLOCK_AP";
-const char* APpassword = "1234567890";
-const char *ssid = SID;
-const char *password = PW;
 
 // Settings
 unsigned long prevTime = 0;
@@ -37,13 +44,12 @@ byte clockMode = 0;                   // Clock modes: 0=Clock, 1=Countdown, 2=Te
 unsigned long countdownMilliSeconds;
 unsigned long endCountDownMillis;
 byte hourFormat = 24;                 // Change this to 12 if you want default 12 hours format instead of 24               
-
 CRGB countdownColor = CRGB::Green;
 byte scoreboardLeft = 0;
 byte scoreboardRight = 0;
 CRGB scoreboardColorLeft = CRGB::Green;
 CRGB scoreboardColorRight = CRGB::Red;
-CRGB alternateColor = CRGB::Black; //CRGB(0,20,125);
+CRGB alternateColor = CRGB::Black; 
 
 long numbers[] = {
   0b000111111111111111111,  // [0] 0
@@ -63,7 +69,6 @@ long numbers[] = {
 };
 
 /* TODO:
- *  done - test if it also works with a mobile phone hotspot and another phone that connects (or same?)
  *  done - upload files http://arduino.esp8266.com/Arduino/versions/2.3.0/doc/filesystem.html#uploading-files-to-file-system
  */
 
@@ -104,42 +109,33 @@ void setup() {
   fill_solid(LEDs, NUM_LEDS, CRGB::Black);
   FastLED.show();
 
-  SPIFFS.begin();
-
-//  // Local intialization. Once its business is done, there is no need to keep it around
-//  WiFiManager wifiManager;
-//  
-//  // !! Uncomment and run it once, if you want to erase all the stored information
-//  //wifiManager.resetSettings();
-//  
-//  wifiManager.autoConnect("ClockAP");
-  
-  // If you get here you have connected to the WiFi
-//  Serial.println("Connected.");
-
+  // WiFi - AP Mode or both
+#if defined(WIFIMODE) && (WIFIMODE == 0 || WIFIMODE == 2) 
   WiFi.mode(WIFI_AP_STA);
-  WiFi.softAP(APssid, APpassword);    // IP will be 192.168.4.1
-  WiFi.begin(ssid, password);
+  WiFi.softAP(APssid, APpassword);    // IP is usually 192.168.4.1
+  Serial.print("SoftAP IP: ");
+  Serial.println(WiFi.softAPIP());
+#endif
 
+  // WiFi - Local network Mode or both
+#if defined(WIFIMODE) && (WIFIMODE == 1 || WIFIMODE == 2) 
+  WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  
-  Serial.println("");
-  Serial.println("WiFi connected");
-
-   // Print both IP addresses, softAPIP is usually 192.168.4.1
+  Serial.print("Local IP: ");
   Serial.println(WiFi.localIP());
-  Serial.println(WiFi.softAPIP());
+#endif   
 
   httpUpdateServer.setup(&server);
 
+  // Handlers
   server.on("/color", HTTP_POST, []() {    
     r_val = server.arg("r").toInt();
     g_val = server.arg("g").toInt();
     b_val = server.arg("b").toInt();
-    server.send(200, "text/json", "{ok}");
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
   });
 
   server.on("/setdate", HTTP_POST, []() { 
@@ -156,12 +152,12 @@ void setup() {
     RtcDateTime compiled = RtcDateTime(d, t);
     Rtc.SetDateTime(compiled);   
     clockMode = 0;     
-    server.send(200, "text/json", "{ok}");
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
   });
 
   server.on("/brightness", HTTP_POST, []() {    
     brightness = server.arg("brightness").toInt();    
-    server.send(200, "text/json", "{ok}");
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
   });
   
   server.on("/countdown", HTTP_POST, []() {    
@@ -173,14 +169,14 @@ void setup() {
     endCountDownMillis = millis() + countdownMilliSeconds;
     allBlank(); 
     clockMode = 1;     
-    server.send(200, "text/json", "{ok}");
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
   });
 
   server.on("/temperature", HTTP_POST, []() {   
     temperatureCorrection = server.arg("correction").toInt();
     temperatureSymbol = server.arg("symbol").toInt();
     clockMode = 2;     
-    server.send(200, "text/json", "{ok}");
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
   });  
 
   server.on("/scoreboard", HTTP_POST, []() {   
@@ -189,25 +185,26 @@ void setup() {
     scoreboardColorLeft = CRGB(server.arg("rl").toInt(),server.arg("gl").toInt(),server.arg("bl").toInt());
     scoreboardColorRight = CRGB(server.arg("rr").toInt(),server.arg("gr").toInt(),server.arg("br").toInt());
     clockMode = 3;     
-    server.send(200, "text/json", "{ok}");
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
   });  
 
   server.on("/hourformat", HTTP_POST, []() {   
     hourFormat = server.arg("hourformat").toInt();
     clockMode = 0;     
-    server.send(200, "text/json", "{ok}");
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
   }); 
 
   server.on("/clock", HTTP_POST, []() {       
     clockMode = 0;     
-    server.send(200, "text/json", "{ok}");
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
   });  
   
   // Before uploading the files with the "ESP8266 Sketch Data Upload" tool, zip the files with the command "gzip -r ./data/" (on Windows I do this with a Git Bash)
   // *.gz files are automatically unpacked and served from your ESP (so you don't need to create a handler for each file).
   server.serveStatic("/", SPIFFS, "/", "max-age=86400");
   server.begin();     
-    
+
+  SPIFFS.begin();
   Serial.println("SPIFFS contents:");
   Dir dir = SPIFFS.openDir("/");
   while (dir.next()) {
@@ -215,7 +212,7 @@ void setup() {
     size_t fileSize = dir.fileSize();
     Serial.printf("FS File: %s, size: %s\n", fileName.c_str(), String(fileSize).c_str());
   }
-  Serial.printf("\n"); 
+  Serial.println(); 
 }
 
 void loop(){
