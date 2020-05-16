@@ -14,3 +14,7 @@ This is a new version of a 7 segment digital clocks that uses WS2812B LED's. Ins
 |5V 2.5A power supply           | 1x    |
 |WS2812B LED Strip 60 LED's per meter     | 2x    |
 
+## 3D Printing
+
+Most files can be printed with 0.3 setting and low infill.
+
