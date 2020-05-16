@@ -30,7 +30,7 @@ $(document).ready(function () {
 function showDateTime() {
     console.log(1);
     var currentDateTime = $('#currentDateTime').get(0);
-    currentDateTime.innerHTML = moment().format('MMMM MM YYYY HH:mm:ss');
+    currentDateTime.innerHTML = moment().format('MMMM DD YYYY HH:mm:ss');
 }
 
 function setColor() {
@@ -46,7 +46,7 @@ function setBrightness() {
 }
 
 function setDateTime() {
-    var d = moment().format('MMMM MM YYYY');
+    var d = moment().format('MMMM DD YYYY');
     var t = moment().format('HH:mm:ss');
     var datetime = { date: d, time: t };
     console.log(datetime);

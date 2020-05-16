@@ -1,12 +1,18 @@
 #include <Wire.h>
-#include <RtcDS3231.h>                // Include RTC library by Makuna: https://github.com/Makuna/Rtc
+#include <RtcDS3231.h>                        // Include RTC library by Makuna: https://github.com/Makuna/Rtc
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-#include <WiFiManager.h>              // https://github.com/tzapu/WiFiManager
 #include <ESP8266HTTPUpdateServer.h>
 #include <FastLED.h>
+#include <FS.h>                               // Please read the instructions on http://arduino.esp8266.com/Arduino/versions/2.3.0/doc/filesystem.html#uploading-files-to-file-system
+#define countof(a) (sizeof(a) / sizeof(a[0]))
+#define NUM_LEDS 86                           // Total of 86 LED's     
+#define DATA_PIN D6                           // Change this if you are using another type of ESP board than a WeMos D1 Mini
+#define MILLI_AMPS 2400 
 
-#define WIFIMODE 2                    // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with UN/PW, 2 = Both
+
+#define WIFIMODE 2                            // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with UN/PW, 2 = Both
+
 
 #if defined(WIFIMODE) && (WIFIMODE == 0 || WIFIMODE == 2)
   const char* APssid = "CLOCK_AP";        
@@ -14,22 +20,15 @@
 #endif
   
 #if defined(WIFIMODE) && (WIFIMODE == 1 || WIFIMODE == 2)
-  #include "Credentials.h"            // Create this file in the same directory as the .ino file and add your credentials (#define SID YOURSSID and on the second line #define PW YOURPASSWORD)
+  #include "Credentials.h"                    // Create this file in the same directory as the .ino file and add your credentials (#define SID YOURSSID and on the second line #define PW YOURPASSWORD)
   const char *ssid = SID;
   const char *password = PW;
 #endif
 
 RtcDS3231<TwoWire> Rtc(Wire);
-#include <FS.h>
-#define countof(a) (sizeof(a) / sizeof(a[0]))
-
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdateServer;
-
-#define NUM_LEDS 86                   // Total of 86 LED's     
-#define DATA_PIN D6                   // Change this if you are using another type of ESP board than a WeMos D1 Mini
 CRGB LEDs[NUM_LEDS];
-#define MILLI_AMPS 2400 
 
 // Settings
 unsigned long prevTime = 0;
@@ -39,18 +38,17 @@ byte b_val = 0;
 bool dotsOn = true;
 byte brightness = 255;
 float temperatureCorrection = -3.0;
-byte temperatureSymbol = 12;          // 12=Celcius, 13=Fahrenheit check 'numbers'
-byte clockMode = 0;                   // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard
+byte temperatureSymbol = 12;                  // 12=Celcius, 13=Fahrenheit check 'numbers'
+byte clockMode = 0;                           // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard
 unsigned long countdownMilliSeconds;
 unsigned long endCountDownMillis;
-byte hourFormat = 24;                 // Change this to 12 if you want default 12 hours format instead of 24               
+byte hourFormat = 24;                         // Change this to 12 if you want default 12 hours format instead of 24               
 CRGB countdownColor = CRGB::Green;
 byte scoreboardLeft = 0;
 byte scoreboardRight = 0;
 CRGB scoreboardColorLeft = CRGB::Green;
 CRGB scoreboardColorRight = CRGB::Red;
 CRGB alternateColor = CRGB::Black; 
-
 long numbers[] = {
   0b000111111111111111111,  // [0] 0
   0b000111000000000000111,  // [1] 1
@@ -67,10 +65,6 @@ long numbers[] = {
   0b000000111111111111000,  // [12] C(elsius)
   0b111000111111111000000,  // [13] F(ahrenheit)
 };
-
-/* TODO:
- *  done - upload files http://arduino.esp8266.com/Arduino/versions/2.3.0/doc/filesystem.html#uploading-files-to-file-system
- */
 
 void setup() {
   Serial.begin(115200); 
@@ -113,16 +107,27 @@ void setup() {
 #if defined(WIFIMODE) && (WIFIMODE == 0 || WIFIMODE == 2) 
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(APssid, APpassword);    // IP is usually 192.168.4.1
+  Serial.println();
   Serial.print("SoftAP IP: ");
   Serial.println(WiFi.softAPIP());
 #endif
 
   // WiFi - Local network Mode or both
 #if defined(WIFIMODE) && (WIFIMODE == 1 || WIFIMODE == 2) 
+  byte count = 0;
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
+    // Stop if cannot connect
+    if (count >= 60) {
+      Serial.println("Could not connect to local WiFi.");      
+      return;
+    }
+       
     delay(500);
     Serial.print(".");
+    LEDs[count] = CRGB::Green;
+    FastLED.show();
+    count++;
   }
   Serial.print("Local IP: ");
   Serial.println(WiFi.localIP());
@@ -285,7 +290,7 @@ void allBlank() {
 
 void updateClock() {  
   RtcDateTime now = Rtc.GetDateTime();
-  printDateTime(now);    
+  // printDateTime(now);    
 
   int hour = now.Hour();
   int mins = now.Minute();
