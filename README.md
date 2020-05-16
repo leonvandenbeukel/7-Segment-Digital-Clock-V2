@@ -18,3 +18,8 @@ This is a new version of a 7 segment digital clocks that uses WS2812B LED's. Ins
 
 Most files can be printed with 0.3 setting and low infill.
 
+
+## Schema
+
+Connect D6 from the ESP8266 through a 10 ohm resistor to the data pin of the LED strip. Connect the RTC to gnd, vcc and connect SDA and SCLK to the ESP8266 (check the pin layout of the ESP board you are using). Don't power the LED strip from the ESP board but use a Micro USB breakout board en connect the 5V to the LED strip.
+
