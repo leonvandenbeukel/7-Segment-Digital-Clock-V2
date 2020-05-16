@@ -41,6 +41,14 @@ Afterwards if you want to change something to the html files, just unzip with:
 
 `gunzip -r ./data/`
 
+## YouTube video
+
+<a href="https://youtu.be/tGhew6kTAwc" target="_blank"><img src="https://img.youtube.com/vi/tGhew6kTAwc/0.jpg" 
+alt="Click to view: 7 Segment Digital Clock V2" width="500" border="1" /></a>
+
+
+
+
 
 
 
