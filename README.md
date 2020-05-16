@@ -1,6 +1,6 @@
 # 7-Segment-Digital-Clock-V2
 
-This is a new version of a 7 segment digital clocks that uses WS2812B LED's.
+This is a new version of a 7 segment digital clocks that uses WS2812B LED's. Instructions how to build can be found in the YouTube video.
 
 
 ## Components
