@@ -9,6 +9,7 @@
 #define NUM_LEDS 86                           // Total of 86 LED's     
 #define DATA_PIN D6                           // Change this if you are using another type of ESP board than a WeMos D1 Mini
 #define MILLI_AMPS 2400 
+#define COUNTDOWN_OUTPUT D5
 
 #define WIFIMODE 2                            // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with UN/PW, 2 = Both
 
@@ -65,6 +66,7 @@ long numbers[] = {
 };
 
 void setup() {
+  pinMode(COUNTDOWN_OUTPUT, OUTPUT);
   Serial.begin(115200); 
   delay(200);
 
@@ -129,6 +131,9 @@ void setup() {
   }
   Serial.print("Local IP: ");
   Serial.println(WiFi.localIP());
+
+  IPAddress ip = WiFi.localIP();
+  Serial.println(ip[3]);
 #endif   
 
   httpUpdateServer.setup(&server);
@@ -168,6 +173,7 @@ void setup() {
     byte cd_r_val = server.arg("r").toInt();
     byte cd_g_val = server.arg("g").toInt();
     byte cd_b_val = server.arg("b").toInt();
+    digitalWrite(COUNTDOWN_OUTPUT, LOW);
     countdownColor = CRGB(cd_r_val, cd_g_val, cd_b_val); 
     endCountDownMillis = millis() + countdownMilliSeconds;
     allBlank(); 
@@ -216,6 +222,8 @@ void setup() {
     Serial.printf("FS File: %s, size: %s\n", fileName.c_str(), String(fileSize).c_str());
   }
   Serial.println(); 
+  
+  digitalWrite(COUNTDOWN_OUTPUT, LOW);
 }
 
 void loop(){
@@ -375,7 +383,7 @@ void updateCountdown() {
     //endCountdown();
     countdownMilliSeconds = 0;
     endCountDownMillis = 0;
-    //clockMode = 0;
+    digitalWrite(COUNTDOWN_OUTPUT, HIGH);
     return;
   }  
 }
